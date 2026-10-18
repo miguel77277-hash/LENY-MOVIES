@@ -28,9 +28,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+            - name: Buscar archivos APK
+        run: |
+          echo "Buscando archivos APK..."
+          find . -type f -name "*.apk" -print
+          echo "Buscando carpetas de salida..."
+          find . -type d -path "*/build/outputs/*" -print
+
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: LENY-MOVIES-APK
-          path: '**/build/outputs/apk/debug/*.apk'
+          path: '**/*.apk'
           if-no-files-found: error
