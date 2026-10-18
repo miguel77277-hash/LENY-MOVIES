@@ -28,7 +28,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-            - name: Buscar archivos APK
+      - name: Buscar archivos APK
         run: |
           echo "Buscando archivos APK..."
           find . -type f -name "*.apk" -print
