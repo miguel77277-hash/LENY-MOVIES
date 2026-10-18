@@ -533,29 +533,47 @@ object PluginManager {
         }
 
         // Make sure all local plugins are fully refreshed.
-        removeKey(PLUGINS_KEY_LOCAL)
+removeKey(PLUGINS_KEY_LOCAL)
 
-        sortedPlugins?.sortedBy { it.name }?.amap { file ->
+    // Load bundled LENY MOVIES extensions included in the APK.
+    val bundledPluginNames = context.assets.list("prebuilt-plugins")
+        ?.filter { it.endsWith(".cs3", ignoreCase = true) }
+        ?.sorted()
+        .orEmpty()
+        .toSet()
+
+    bundledPluginNames.forEach { fileName ->
+        try {
+            val destinationFile = File(pluginDirectory, fileName)
+
+            context.assets.open("prebuilt-plugins/$fileName").use { input ->
+                destinationFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            maybeLoadPlugin(context, destinationFile)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to copy/load bundled plugin: $fileName")
+            logError(t)
+        }
+    }
+
+    // Load local plugins without loading bundled extensions twice.
+    sortedPlugins?.sortedBy { it.name }
+        ?.filterNot { it.name in bundledPluginNames }
+        ?.amap { file ->
             try {
                 val destinationFile = File(pluginDirectory, file.name)
 
-                // Only copy the file if the destination file doesn't exist or if it
-                // has been modified (check file length and modification time).
                 if (!destinationFile.exists() ||
                     destinationFile.length() != file.length() ||
                     destinationFile.lastModified() != file.lastModified()
                 ) {
-
-                    // Copy the file to the app-specific plugin directory
                     file.copyTo(destinationFile, overwrite = true)
-
-                    // After copying, set the destination file's modification time
-                    // to match the source file. We do this for performance so that we
-                    // can check the modification time and not make redundant writes.
                     destinationFile.setLastModified(file.lastModified())
                 }
 
-                // Load the plugin after it has been copied
                 maybeLoadPlugin(context, destinationFile)
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to copy the file")
